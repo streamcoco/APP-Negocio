@@ -14,7 +14,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <!-- ZXing Library for Barcode Scanning -->
     <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
-    <!-- UUID for unique IDs -->
+    <!-- UUID for unique IDs (CORREGIDO) -->
     <script src="https://cdn.jsdelivr.net/npm/uuid@8.3.2/dist/umd/uuidv4.min.js"></script>
     <style>
       body {
@@ -37,7 +37,8 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
-        const { v4: uuidv4 } = window.uuid;
+        // Se corrige la importación de uuidv4 para que se lea directamente del objeto window
+        const uuidv4 = window.uuidv4;
 
         // Componente principal de la aplicación
         const App = () => {
@@ -574,4 +575,505 @@
           return (
             <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 md:p-8">
               <div className="flex justify-between items-center mb-4 sm:mb-6">
-                <h2 className="text-xl sm:text-2xl font-b
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Perfil de {client.name}</h2>
+                <button onClick={() => setView('clients')} className="bg-gray-500 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-600 transition-colors">
+                  Volver
+                </button>
+              </div>
+
+              {/* Detalles del Cliente */}
+              <div className="space-y-4 mb-6 sm:mb-8">
+                <div className="p-4 bg-gray-50 rounded-md border border-gray-200">
+                  <p className="text-gray-600"><span className="font-semibold text-gray-800">Teléfono:</span> {client.phone}</p>
+                </div>
+              </div>
+
+              {/* Historial de Compras */}
+              <div className="mb-6 sm:mb-8">
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-4">Historial de Compras</h3>
+                {client.purchaseHistory && client.purchaseHistory.length > 0 ? (
+                  <ul className="space-y-4">
+                    {client.purchaseHistory.map((purchase, index) => (
+                      <li key={index} className="p-4 bg-gray-50 rounded-xl border border-gray-200 shadow-sm">
+                        <p className="font-bold text-gray-800">Compra #{purchase.id.slice(0, 8)}</p>
+                        <p className="text-gray-600">Fecha: {purchase.date}</p>
+                        <p className="text-gray-600">Total: ${purchase.total.toFixed(2)}</p>
+                        <ul className="list-disc list-inside mt-2 text-gray-600">
+                          {purchase.items.map((item, i) => (
+                            <li key={i}>{item.name} x {item.quantity} (${item.price.toFixed(2)} c/u)</li>
+                          ))}
+                        </ul>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500">No hay historial de compras.</p>
+                )}
+              </div>
+
+              {/* Pedidos Actuales */}
+              <div>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-4">Pedidos Actuales</h3>
+                {client.currentOrders && client.currentOrders.length > 0 ? (
+                  <ul className="space-y-4">
+                    {client.currentOrders.map((order, index) => (
+                      <li key={index} className="p-4 bg-yellow-50 rounded-xl border border-yellow-200 shadow-sm">
+                        <p className="font-bold text-gray-800">Pedido #{order.id}</p>
+                        <p className="text-gray-600">Estado: {order.status}</p>
+                        <p className="text-gray-600">Fecha del Pedido: {order.date}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500">No hay pedidos actuales.</p>
+                )}
+              </div>
+            </div>
+          );
+        };
+
+        // --- Componente de la vista de Compra ---
+        const PurchaseView = ({ clients, products, addPurchase }) => {
+          const [selectedClientId, setSelectedClientId] = useState('');
+          const [cart, setCart] = useState([]);
+          const [productQuery, setProductQuery] = useState('');
+          const [filteredProducts, setFilteredProducts] = useState([]);
+          const [clientQuery, setClientQuery] = useState('');
+          const [filteredClients, setFilteredClients] = useState([]);
+          const [quantity, setQuantity] = useState(1);
+          const [message, setMessage] = useState('');
+          const [showScanner, setShowScanner] = useState = useState(false);
+
+          const handleClientSearch = (e) => {
+            const query = e.target.value;
+            setClientQuery(query);
+            if (query.length > 0) {
+              setFilteredClients(clients.filter(c => c.name.toLowerCase().includes(query.toLowerCase())));
+            } else {
+              setFilteredClients([]);
+            }
+          };
+
+          const handleSelectClient = (client) => {
+            setClientQuery(client.name);
+            setSelectedClientId(client.id);
+            setFilteredClients([]);
+          };
+
+          const handleProductSearch = (e) => {
+            const query = e.target.value;
+            setProductQuery(query);
+            if (query.length > 0) {
+              setFilteredProducts(products.filter(p => p.name.toLowerCase().includes(query.toLowerCase())));
+            } else {
+              setFilteredProducts([]);
+            }
+          };
+
+          const handleSelectProduct = (product) => {
+            setProductQuery(product.name);
+            setFilteredProducts([]);
+          };
+
+          const handleAddProductToCart = (e) => {
+            e.preventDefault();
+            if (!productQuery || quantity <= 0) return;
+
+            const productToAdd = products.find(p => p.name.toLowerCase() === productQuery.toLowerCase());
+            if (!productToAdd) {
+              setMessage('Producto no encontrado.');
+              return;
+            }
+
+            if (productToAdd.stock < quantity) {
+              setMessage('Stock insuficiente para este producto.');
+              return;
+            }
+
+            const itemInCart = cart.find(item => item.id === productToAdd.id);
+            if (itemInCart) {
+              setCart(cart.map(item =>
+                item.id === productToAdd.id ? { ...item, quantity: item.quantity + quantity } : item
+              ));
+            } else {
+              setCart([...cart, { ...productToAdd, quantity, stock: productToAdd.stock }]);
+            }
+            setMessage('');
+            setProductQuery('');
+            setQuantity(1);
+          };
+          
+          const handleQuantityChange = (delta) => {
+            setQuantity(prevQuantity => {
+              const newQuantity = prevQuantity + delta;
+              return newQuantity > 0 ? newQuantity : 1;
+            });
+          };
+
+          const handleIssuePurchase = async () => {
+            if (!selectedClientId || cart.length === 0) {
+              setMessage('Por favor, selecciona un cliente y añade productos al carrito.');
+              return;
+            }
+
+            const total = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+            const purchaseDetails = {
+              clientId: selectedClientId,
+              date: new Date().toLocaleDateString(),
+              items: cart,
+              total,
+            };
+            
+            addPurchase(purchaseDetails);
+
+            setCart([]);
+            setSelectedClientId('');
+            setClientQuery('');
+            setMessage(`Compra emitida con éxito.`);
+          };
+
+          const handleBarcodeScanned = (barcode) => {
+            const product = products.find(p => p.barcode === barcode);
+            if (product) {
+              setProductQuery(product.name);
+              setMessage(`Producto encontrado: ${product.name}.`);
+            } else {
+              setMessage('Código de barras no reconocido.');
+            }
+            setShowScanner(false);
+          };
+
+          const cartTotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+
+          return (
+            <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 md:p-8">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Emisión de Compra</h2>
+
+              {message && (
+                <div className="mb-4 p-3 rounded-md bg-green-100 text-green-700 font-semibold text-center">
+                  {message}
+                </div>
+              )}
+
+              {/* Lógica del Escáner */}
+              {showScanner ? (
+                <div className="relative mb-6 p-4 bg-gray-200 rounded-lg">
+                  <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-700">Escáner de Código de Barras</h3>
+                  <p className="text-sm text-gray-600 mb-4">Apunta la cámara a un código de barras. Esto podría tardar unos segundos en inicializarse.</p>
+                  <BarcodeScanner onBarcodeScanned={handleBarcodeScanned} />
+                  <button
+                    onClick={() => setShowScanner(false)}
+                    className="mt-4 w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-600 transition-colors"
+                  >
+                    Cerrar Escáner
+                  </button>
+                </div>
+              ) : (
+                <div className="mb-6 flex flex-col sm:flex-row gap-4">
+                  <button
+                    onClick={() => setShowScanner(true)}
+                    className="w-full sm:w-auto bg-green-600 text-white font-bold p-3 rounded-md hover:bg-green-700 transition-colors shadow-md flex items-center justify-center space-x-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10h-4v4h4v-4z"></path><path d="M4 10h4v4h-4v-4z"></path><path d="M10 4v4h4v-4h-4z"></path><path d="M10 16v4h4v-4h-4z"></path><path d="M4 4h4v4h-4v-4z"></path><path d="M16 4h4v4h-4v-4z"></path><path d="M4 16h4v4h-4v-4z"></path><path d="M16 16h4v4h-4v-4z"></path></svg>
+                    <span>Escanear Código de Barras</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Seleccionar Cliente (con búsqueda) */}
+              <div className="mb-6 relative">
+                <label htmlFor="client-search" className="block text-gray-700 font-semibold mb-2">Seleccionar Cliente</label>
+                <input
+                  type="text"
+                  id="client-search"
+                  placeholder="Buscar cliente..."
+                  value={clientQuery}
+                  onChange={handleClientSearch}
+                  className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                {filteredClients.length > 0 && (
+                  <ul className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md mt-1 shadow-lg z-10 max-h-48 overflow-y-auto">
+                    {filteredClients.map(client => (
+                      <li
+                        key={client.id}
+                        onClick={() => handleSelectClient(client)}
+                        className="p-3 cursor-pointer hover:bg-gray-200"
+                      >
+                        {client.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* Añadir Producto al Carrito (con búsqueda) */}
+              <form onSubmit={handleAddProductToCart} className="mb-6 p-4 sm:p-6 bg-gray-50 rounded-xl border border-gray-200 relative">
+                <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-700">Añadir Producto al Carrito</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Buscar producto..."
+                      value={productQuery}
+                      onChange={handleProductSearch}
+                      className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    {filteredProducts.length > 0 && (
+                      <ul className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md mt-1 shadow-lg z-10 max-h-48 overflow-y-auto">
+                        {filteredProducts.map(product => (
+                          <li
+                            key={product.id}
+                            onClick={() => handleSelectProduct(product)}
+                            className="p-3 cursor-pointer hover:bg-gray-200"
+                          >
+                            {product.name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => handleQuantityChange(-1)}
+                      className="w-10 h-10 bg-gray-200 text-gray-700 font-bold text-xl rounded-md flex items-center justify-center hover:bg-gray-300 transition-colors"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      placeholder="Cantidad"
+                      value={quantity}
+                      onChange={(e) => setQuantity(parseInt(e.target.value, 10))}
+                      min="1"
+                      className="w-full text-center p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleQuantityChange(1)}
+                      className="w-10 h-10 bg-gray-200 text-gray-700 font-bold text-xl rounded-md flex items-center justify-center hover:bg-gray-300 transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <button type="submit" className="w-full bg-blue-600 text-white font-bold p-3 rounded-md hover:bg-blue-700 transition-colors shadow-md">
+                  Añadir al Carrito
+                </button>
+              </form>
+
+              {/* Resumen del Carrito */}
+              <div className="mb-6 p-4 sm:p-6 bg-white rounded-xl border border-gray-300 shadow-md">
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-4">Carrito de Compras</h3>
+                {cart.length > 0 ? (
+                  <ul className="space-y-2 mb-4">
+                    {cart.map((item) => (
+                      <li key={item.id} className="flex justify-between items-center text-gray-800 border-b pb-2">
+                        <span>{item.name} x {item.quantity}</span>
+                        <span className="font-semibold">${(item.price * item.quantity).toFixed(2)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500 italic">El carrito está vacío.</p>
+                )}
+                <div className="border-t pt-4 mt-4 flex justify-between items-center text-base sm:text-xl font-bold text-gray-800">
+                  <span>Total:</span>
+                  <span>${cartTotal.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Botón para emitir la compra */}
+              <button
+                onClick={handleIssuePurchase}
+                className="w-full bg-indigo-600 text-white font-bold p-3 rounded-md hover:bg-indigo-700 transition-colors shadow-md text-lg"
+              >
+                Emitir Detalle de Compra
+              </button>
+            </div>
+          );
+        };
+
+        // --- Componente de la vista de Historial de Ventas ---
+        const SalesHistoryView = ({ purchases, clients, setView, onSelectPurchase }) => {
+          const getClientName = (clientId) => {
+            const client = clients.find(c => c.id === clientId);
+            return client ? client.name : 'Cliente Desconocido';
+          };
+
+          return (
+            <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 md:p-8">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Historial de Ventas</h2>
+              {purchases.length > 0 ? (
+                <ul className="space-y-4">
+                  {purchases.map((purchase, index) => (
+                    <li key={purchase.id} className="p-4 bg-gray-50 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => onSelectPurchase(purchase, index)}>
+                      <div className="text-gray-800 flex-grow">
+                        <span className="font-bold block sm:inline-block">Compra #{index + 1}</span>
+                        <p className="text-sm text-gray-600">Cliente: {getClientName(purchase.clientId)}</p>
+                        <p className="text-sm text-gray-600">Fecha: {purchase.date}</p>
+                      </div>
+                      <div className="mt-2 sm:mt-0 text-left sm:text-right font-bold text-base sm:text-lg text-indigo-600">
+                        ${purchase.total.toFixed(2)}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-center text-base sm:text-lg text-gray-600">No se han realizado ventas aún.</p>
+              )}
+            </div>
+          );
+        };
+
+        // --- Componente de la vista de Boleta ---
+        const ReceiptView = ({ purchase, setView, clients, currentUser, purchaseIndex }) => {
+          const receiptRef = useRef();
+          
+          if (!purchase) {
+            return (
+              <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 text-center">
+                <p className="text-base sm:text-lg text-gray-600">No hay boleta seleccionada.</p>
+                <button onClick={() => setView('sales-history')} className="mt-4 bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors">
+                  Volver a Ventas
+                </button>
+              </div>
+            );
+          }
+
+          const handlePrint = () => {
+            const printContent = receiptRef.current.innerHTML;
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write('<html><head><title>Boleta</title>');
+            printWindow.document.write('<style>');
+            printWindow.document.write(`
+              @page { size: auto; margin: 0; }
+              body { font-family: monospace; font-size: 12px; }
+              .receipt-container { width: 100%; max-width: 300px; margin: 0 auto; padding: 10px; }
+              .header, .footer { text-align: center; margin-bottom: 10px; }
+              .line { border-bottom: 1px dashed black; margin: 10px 0; }
+              .item { display: flex; justify-content: space-between; }
+              .item-name { flex-grow: 1; }
+              .item-price { text-align: right; }
+              .total { font-weight: bold; font-size: 16px; }
+              @media print {
+                .no-print { display: none !important; }
+                body { margin: 0 !important; }
+              }
+            `);
+            printWindow.document.write('</style>');
+            printWindow.document.write('</head><body>');
+            printWindow.document.write(printContent);
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.print();
+          };
+          
+          const getClientName = (clientId) => {
+            const client = clients.find(c => c.id === clientId);
+            return client ? client.name : 'Cliente Desconocido';
+          };
+
+          return (
+            <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 md:p-8">
+              <div className="flex justify-between items-center mb-4 sm:mb-6 no-print">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Boleta de Compra</h2>
+                <div className="flex space-x-2">
+                  <button onClick={() => setView('sales-history')} className="bg-gray-500 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-600 transition-colors">
+                    Volver
+                  </button>
+                  <button onClick={handlePrint} className="bg-green-600 text-white font-bold py-2 px-4 rounded-md hover:bg-green-700 transition-colors flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    <span>Imprimir</span>
+                  </button>
+                </div>
+              </div>
+              
+              <div ref={receiptRef} className="receipt-container p-4 bg-white border border-gray-300 rounded-md">
+                <div className="header text-center">
+                  <h3 className="text-lg sm:text-xl font-bold">DETALLE DE VENTA</h3>
+                  <p className="text-xs sm:text-sm">{currentUser.toUpperCase()}</p>
+                  <p className="text-xs sm:text-sm">Boleta de venta N° {purchaseIndex + 1}</p>
+                  <p className="text-xs sm:text-sm">Fecha: {purchase.date}</p>
+                </div>
+                <div className="line my-4 border-b border-dashed border-gray-400"></div>
+                <div className="customer-info">
+                  <p className="text-xs sm:text-sm"><span className="font-bold">Cliente:</span> {getClientName(purchase.clientId)}</p>
+                </div>
+                <div className="line my-4 border-b border-dashed border-gray-400"></div>
+                <div className="items">
+                  <div className="flex justify-between font-bold text-sm">
+                    <span className="w-1/2">Producto</span>
+                    <span className="w-1/4 text-right">Cant.</span>
+                    <span className="w-1/4 text-right">Total</span>
+                  </div>
+                  {purchase.items.map((item, index) => (
+                    <div key={index} className="flex justify-between text-xs sm:text-sm mt-2">
+                      <span className="w-1/2">{item.name}</span>
+                      <span className="w-1/4 text-right">{item.quantity}</span>
+                      <span className="w-1/4 text-right">${(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="line my-4 border-b border-dashed border-gray-400"></div>
+                <div className="total-info flex justify-between font-bold text-base sm:text-lg">
+                  <span>TOTAL</span>
+                  <span>${purchase.total.toFixed(2)}</span>
+                </div>
+                <div className="footer text-center mt-4 text-xs sm:text-sm">
+                  <p>¡Gracias por tu compra!</p>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        // --- Componente de Escáner de Código de Barras ---
+        const BarcodeScanner = ({ onBarcodeScanned }) => {
+          const videoRef = useRef(null);
+          const codeReader = useRef(null);
+
+          useEffect(() => {
+            if (window.ZXing && videoRef.current) {
+              codeReader.current = new window.ZXing.BrowserMultiFormatReader();
+              const startScanner = async () => {
+                try {
+                  await codeReader.current.listVideoInputDevices();
+                  codeReader.current.decodeFromVideoDevice(null, videoRef.current, (result, err) => {
+                    if (result) {
+                      onBarcodeScanned(result.getText());
+                    }
+                    if (err && window.ZXing && !(err instanceof window.ZXing.NotFoundException)) {
+                      console.error('Error durante el escaneo:', err);
+                    }
+                  });
+                } catch (error) {
+                  console.error('Error al iniciar el escáner de código de barras:', error);
+                }
+              };
+              startScanner();
+            }
+
+            return () => {
+              if (codeReader.current) {
+                codeReader.current.reset();
+              }
+            };
+          }, [onBarcodeScanned]);
+
+          return (
+            <video
+              ref={videoRef}
+              className="w-full h-auto rounded-lg shadow-md"
+              style={{ transform: 'scaleX(-1)' }}
+            />
+          );
+        };
+        
+        // Renderiza el componente principal en el DOM
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+
+    </script>
+</body>
+</html>
