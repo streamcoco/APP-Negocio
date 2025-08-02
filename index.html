@@ -16,6 +16,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
     <!-- UUID for unique IDs -->
     <script src="https://cdn.jsdelivr.net/npm/uuid@8.3.2/dist/umd/uuidv4.min.js"></script>
+    <!-- XLSX Library for Excel import -->
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <style>
       body {
         font-family: 'Inter', sans-serif;
@@ -37,8 +39,8 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
-        // La librería uuid se expone en la ventana, así que la usamos directamente.
         const uuidv4 = window.uuidv4;
+        const XLSX = window.XLSX;
 
         // Componente principal de la aplicación
         const App = () => {
@@ -55,14 +57,12 @@
           }, []);
 
           const handleLogin = (username) => {
-            // Simula un inicio de sesión exitoso
             setCurrentUser(username);
             setIsLoggedIn(true);
             localStorage.setItem('currentUser', username);
           };
 
           const handleLogout = () => {
-            // Cierra la sesión
             setIsLoggedIn(false);
             setCurrentUser(null);
             localStorage.removeItem('currentUser');
@@ -89,7 +89,6 @@
             e.preventDefault();
             setError('');
 
-            // Credenciales secretas (para este ejemplo)
             const validUser = 'avefenix';
             const validPass = 'millo4020';
 
@@ -196,6 +195,29 @@
             );
           };
 
+          const updateProductList = (newProducts) => {
+            setProducts(prevProducts => {
+                const updatedProducts = [...prevProducts];
+                newProducts.forEach(newProduct => {
+                    const existingProductIndex = updatedProducts.findIndex(p => p.name.trim().toLowerCase() === newProduct.name.trim().toLowerCase());
+                    if (existingProductIndex !== -1) {
+                        // Actualizar producto existente
+                        updatedProducts[existingProductIndex] = {
+                            ...updatedProducts[existingProductIndex],
+                            ...newProduct
+                        };
+                    } else {
+                        // Añadir nuevo producto
+                        updatedProducts.push({
+                            id: uuidv4(),
+                            ...newProduct
+                        });
+                    }
+                });
+                return updatedProducts;
+            });
+          };
+
           const deleteProduct = (productId) => {
             setProducts(prevProducts => prevProducts.filter(p => p.id !== productId));
           };
@@ -207,7 +229,6 @@
           const addPurchase = (purchaseData) => {
             setPurchases(prevPurchases => [...prevPurchases, { id: uuidv4(), ...purchaseData }]);
 
-            // Actualizar el stock de los productos
             setProducts(prevProducts =>
               prevProducts.map(product => {
                 const purchasedItem = purchaseData.items.find(item => item.id === product.id);
@@ -235,7 +256,7 @@
               case 'home':
                 return <HomeView currentUser={currentUser} />;
               case 'products':
-                return <ProductsView products={products} addProduct={addProduct} deleteProduct={deleteProduct} updateProduct={updateProduct} />;
+                return <ProductsView products={products} addProduct={addProduct} deleteProduct={deleteProduct} updateProduct={updateProduct} updateProductList={updateProductList} />;
               case 'clients':
                 return <ClientsView clients={clients} addClient={addClient} setSelectedClient={setSelectedClient} setView={navigateTo} />;
               case 'client-profile':
@@ -349,12 +370,13 @@
         );
 
         // --- Componente de la vista de Productos ---
-        const ProductsView = ({ products, addProduct, deleteProduct, updateProduct }) => {
+        const ProductsView = ({ products, addProduct, deleteProduct, updateProduct, updateProductList }) => {
           const [editingProduct, setEditingProduct] = useState(null);
           const [productName, setProductName] = useState('');
           const [productPrice, setProductPrice] = useState('');
           const [productStock, setProductStock] = useState('');
           const [productBarcode, setProductBarcode] = useState('');
+          const [importMessage, setImportMessage] = useState('');
 
           const handleEdit = (product) => {
             setEditingProduct(product);
@@ -395,9 +417,85 @@
             }
           };
 
+          const handleImport = (e) => {
+            setImportMessage('');
+            const file = e.target.files[0];
+            if (!file) {
+              setImportMessage('No se seleccionó ningún archivo.');
+              return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              try {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                // Se espera un formato de archivo con las columnas: ARTÍCULO, PRECIO, CÓDIGO, STOCK
+                if (json.length > 1) {
+                  const headerRow = json[0].map(h => typeof h === 'string' ? h.trim().toLowerCase() : h);
+                  const articleColIndex = headerRow.findIndex(h => h === 'articulo');
+                  const priceColIndex = headerRow.findIndex(h => h === 'precio');
+                  const codeColIndex = headerRow.findIndex(h => h === 'codigo');
+                  const stockColIndex = headerRow.findIndex(h => h === 'stock');
+
+                  if (articleColIndex === -1 || priceColIndex === -1 || codeColIndex === -1 || stockColIndex === -1) {
+                      setImportMessage('Error: El archivo debe contener las columnas "articulo", "precio", "codigo" y "stock".');
+                      return;
+                  }
+
+                  const importedProducts = json.slice(1).map(row => {
+                      const name = row[articleColIndex];
+                      const price = parseFloat(row[priceColIndex]);
+                      const barcode = row[codeColIndex] ? String(row[codeColIndex]).trim() : null;
+                      const stock = parseInt(row[stockColIndex], 10);
+                      
+                      return {
+                          name: name,
+                          price: isNaN(price) ? 0 : price,
+                          barcode: barcode,
+                          stock: isNaN(stock) ? 0 : stock
+                      };
+                  }).filter(p => p.name); // Filtra filas vacías
+
+                  updateProductList(importedProducts);
+                  setImportMessage(`¡Importación exitosa! Se han procesado ${importedProducts.length} productos.`);
+                  e.target.value = null; // Reinicia el input para permitir importar el mismo archivo nuevamente
+                } else {
+                  setImportMessage('Error: El archivo está vacío o el formato es incorrecto.');
+                }
+              } catch (error) {
+                console.error('Error al procesar el archivo:', error);
+                setImportMessage('Ocurrió un error al procesar el archivo. Asegúrate de que es un archivo Excel o CSV válido.');
+              }
+            };
+            reader.readAsArrayBuffer(file);
+          };
+
+
           return (
             <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 md:p-8">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Gestión de Productos</h2>
+
+              {/* Sección de Importación de Archivo */}
+              <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-yellow-50 rounded-xl border border-yellow-200">
+                  <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-700">Importar Productos desde Excel/CSV</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                      Sube un archivo con las columnas "articulo", "precio", "codigo" y "stock" para actualizar el listado de productos. Los productos existentes se actualizarán y los nuevos se añadirán.
+                  </p>
+                  <label className="block">
+                      <span className="sr-only">Seleccionar archivo</span>
+                      <input type="file" onChange={handleImport} accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
+                  </label>
+                  {importMessage && (
+                      <p className={`mt-4 font-semibold text-sm ${importMessage.includes('Error') ? 'text-red-700' : 'text-green-700'}`}>
+                          {importMessage}
+                      </p>
+                  )}
+              </div>
 
               {/* Formulario para añadir/editar producto */}
               <form onSubmit={handleSubmit} className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gray-50 rounded-xl border border-gray-200">
@@ -644,7 +742,6 @@
           const [filteredClients, setFilteredClients] = useState([]);
           const [quantity, setQuantity] = useState(1);
           const [message, setMessage] = useState('');
-          // Se corrige el error de tipografía en la declaración de useState
           const [showScanner, setShowScanner] = useState(false);
 
           const handleClientSearch = (e) => {
