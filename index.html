@@ -14,7 +14,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <!-- ZXing Library for Barcode Scanning -->
     <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
-    <!-- UUID for unique IDs (CORREGIDO) -->
+    <!-- UUID for unique IDs -->
     <script src="https://cdn.jsdelivr.net/npm/uuid@8.3.2/dist/umd/uuidv4.min.js"></script>
     <style>
       body {
@@ -37,7 +37,7 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
-        // Se corrige la importación de uuidv4 para que se lea directamente del objeto window
+        // La librería uuid se expone en la ventana, así que la usamos directamente.
         const uuidv4 = window.uuidv4;
 
         // Componente principal de la aplicación
@@ -109,6 +109,7 @@
                     <label className="block text-sm font-medium text-gray-700">Usuario</label>
                     <input
                       type="text"
+                      placeholder="Usuario"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -119,6 +120,7 @@
                     <label className="block text-sm font-medium text-gray-700">Clave</label>
                     <input
                       type="password"
+                      placeholder="Clave"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -642,7 +644,8 @@
           const [filteredClients, setFilteredClients] = useState([]);
           const [quantity, setQuantity] = useState(1);
           const [message, setMessage] = useState('');
-          const [showScanner, setShowScanner] = useState = useState(false);
+          // Se corrige el error de tipografía en la declaración de useState
+          const [showScanner, setShowScanner] = useState(false);
 
           const handleClientSearch = (e) => {
             const query = e.target.value;
