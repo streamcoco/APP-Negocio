@@ -286,6 +286,41 @@
         .client-suggestion-item:hover {
             background-color: #f0f0f0;
         }
+
+        /* Estilos del desplegable de búsqueda de productos */
+        .search-container {
+            position: relative;
+        }
+
+        #search-suggestions {
+            position: absolute;
+            z-index: 10;
+            top: 100%; /* Posiciona debajo del input */
+            left: 0;
+            right: 0;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-height: 200px;
+            overflow-y: auto;
+            display: none; /* Ocultar por defecto */
+        }
+        
+        .search-suggestion-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        .search-suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-suggestion-item:hover {
+            background-color: #f0f0f0;
+        }
     </style>
 </head>
 <body>
@@ -639,6 +674,7 @@
         const clientPurchasesDetails = document.getElementById('client-purchases-details');
         const clientPurchasesList = document.getElementById('client-purchases-list');
         const generateReportBtn = document.getElementById('generate-report-btn');
+        const searchSuggestionsEl = document.getElementById('search-suggestions');
         
         // Elementos del formulario de inicio de sesión
         const loginFormContainer = document.getElementById('login-form-container');
@@ -987,8 +1023,7 @@
 
         productSearch.addEventListener('input', (e) => {
             const searchTerm = e.target.value.toLowerCase();
-            const suggestionsEl = document.getElementById('search-suggestions');
-            suggestionsEl.innerHTML = '';
+            searchSuggestionsEl.innerHTML = '';
             
             if (searchTerm.length > 0) {
                 const filteredProducts = products.filter(p => 
@@ -997,30 +1032,33 @@
                 );
 
                 if (filteredProducts.length > 0) {
-                    suggestionsEl.style.border = '1px solid #ccc';
+                    searchSuggestionsEl.style.display = 'block'; // Mostrar el contenedor
                     filteredProducts.forEach(product => {
                         const suggestionItem = document.createElement('div');
                         suggestionItem.classList.add('search-suggestion-item');
-                        suggestionItem.style.padding = '0.5rem';
-                        suggestionItem.style.cursor = 'pointer';
-                        suggestionItem.style.borderBottom = '1px solid #eee';
                         suggestionItem.textContent = `${product.name} - $${product.price}`;
                         suggestionItem.addEventListener('click', () => {
                             addToCart(product);
                             productSearch.value = '';
-                            suggestionsEl.innerHTML = '';
-                            suggestionsEl.style.border = 'none';
+                            searchSuggestionsEl.style.display = 'none'; // Ocultar después de seleccionar
                         });
-                        suggestionsEl.appendChild(suggestionItem);
+                        searchSuggestionsEl.appendChild(suggestionItem);
                     });
                 } else {
-                    suggestionsEl.style.border = 'none';
+                    searchSuggestionsEl.style.display = 'none'; // Ocultar si no hay resultados
                 }
             } else {
-                suggestionsEl.innerHTML = '';
-                suggestionsEl.style.border = 'none';
+                searchSuggestionsEl.style.display = 'none'; // Ocultar si el input está vacío
             }
         });
+        
+        // Clic fuera del input para cerrar el dropdown
+        document.addEventListener('click', (e) => {
+            if (!productSearch.parentNode.contains(e.target)) {
+                searchSuggestionsEl.style.display = 'none';
+            }
+        });
+
 
         function addToCart(product) {
             const cart = JSON.parse(localStorage.getItem('cart') || '[]');
