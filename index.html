@@ -62,17 +62,34 @@
             box-shadow: 0 8px 25px rgba(0, 123, 255, 0.4);
         }
 
-        .menu-button .fa-solid {
+        .menu-button .fa-solid, .menu-button .fa-brands {
             font-size: 3rem;
             margin-bottom: 0.5rem;
         }
 
+        /* Estilos para el nuevo sistema de menú */
         .section-container {
             display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #f0f2f5;
+            overflow-y: auto;
+            z-index: 100;
         }
 
         .section-container.active {
             display: block;
+        }
+
+        .main-menu.active {
+            display: block;
+        }
+
+        .main-menu {
+            display: none;
         }
 
         .card {
@@ -164,6 +181,21 @@
             max-width: 500px;
             text-align: center;
         }
+        
+        #login-form-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f2f5;
+        }
+
+        #login-form-container .card {
+            max-width: 400px;
+            padding: 2rem;
+            text-align: center;
+        }
+
 
         .close-button {
             position: absolute;
@@ -181,271 +213,403 @@
             background: #000;
             margin-bottom: 1rem;
         }
+        
+        /* Corregir el diseño del carrito para el recuadro de escaneo */
+        .cart-controls {
+            display: grid;
+            grid-template-columns: 1fr auto; /* Ocupa el espacio restante y un tamaño fijo */
+            gap: 1rem;
+            align-items: end;
+        }
 
-        .receipt {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            line-height: 1.2;
-            width: 250px;
-            margin: auto;
-            border: 1px dashed #ccc;
-            padding: 10px;
+        .cart-controls .search-container {
+            width: 100%;
+        }
+
+        .cart-controls .scanner-button {
+            width: 100%;
+            max-width: 150px; /* Tamaño fijo para el botón */
+            margin-top: 1.5rem;
+        }
+
+        /* Ocultar el iframe y usar un mensaje */
+        .receipt-message {
+            text-align: center;
+            padding: 2rem;
+            font-size: 1.2rem;
+            color: #333;
         }
         
-        .receipt-header, .receipt-footer {
-            text-align: center;
-            margin-bottom: 10px;
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            z-index: 1001;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .notification.show {
+            opacity: 1;
         }
 
-        .receipt-header p {
-            margin: 0;
-            line-height: 1;
+        /* Estilos para el campo de búsqueda de clientes */
+        .client-search-container {
+            position: relative;
         }
 
-        .receipt-details {
-            border-top: 1px dashed #000;
-            border-bottom: 1px dashed #000;
-            padding: 5px 0;
+        #client-suggestions {
+            position: absolute;
+            z-index: 10;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-height: 200px;
+            overflow-y: auto;
         }
 
-        .receipt-item {
-            display: flex;
-            justify-content: space-between;
+        .client-suggestion-item {
+            padding: 10px;
+            cursor: pointer;
         }
 
-        .receipt-total {
-            text-align: right;
-            font-weight: bold;
-            font-size: 14px;
-            margin-top: 10px;
+        .client-suggestion-item:hover {
+            background-color: #f0f0f0;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1 class="title">AVE FENIX MULTIVENTAS</h1>
-        <main>
-            <div class="menu-grid">
-                <a href="#carrito" role="button" class="menu-button">
-                    <i class="fa-solid fa-cart-shopping"></i>
-                    <span>Carrito</span>
-                </a>
-                <a href="#productos" role="button" class="menu-button">
-                    <i class="fa-solid fa-box-open"></i>
-                    <span>Productos</span>
-                </a>
-                <a href="#clientes" role="button" class="menu-button">
-                    <i class="fa-solid fa-users"></i>
-                    <span>Clientes</span>
-                </a>
-                <a href="#historial" role="button" class="menu-button">
-                    <i class="fa-solid fa-clock-rotate-left"></i>
-                    <span>Historial</span>
-                </a>
-                <a href="#estadistica" role="button" class="menu-button">
-                    <i class="fa-solid fa-chart-line"></i>
-                    <span>Estadística</span>
-                </a>
-            </div>
+    <div id="login-form-container">
+        <article class="card">
+            <h2 class="title">Iniciar Sesión</h2>
+            <form id="login-form">
+                <label for="username">Usuario</label>
+                <input type="text" id="username" name="username" required>
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" name="password" required>
+                <button type="submit" class="contrast" style="width: 100%;">Ingresar</button>
+            </form>
+        </article>
+    </div>
 
-            <div id="carrito" class="section-container active">
-                <article class="card">
-                    <h2>Carrito de Venta</h2>
-                    <div class="grid">
-                        <label for="product-search">Buscar Producto por nombre o código
-                            <input type="text" id="product-search" name="product-search">
-                            <div id="search-suggestions" role="listbox"></div>
-                        </label>
-                        <button onclick="openBarcodeScannerModal()" class="secondary"><i class="fa-solid fa-barcode"></i> Escanear Código</button>
+    <div id="app-container" style="display: none;">
+        <div class="container">
+            <h1 class="title">AVE FENIX MULTIVENTAS</h1>
+            <main>
+                <!-- Menú Principal -->
+                <div id="main-menu" class="main-menu active">
+                    <div class="menu-grid">
+                        <a href="#carrito" role="button" class="menu-button">
+                            <i class="fa-solid fa-cart-shopping"></i>
+                            <span>Carrito</span>
+                        </a>
+                        <a href="#productos" role="button" class="menu-button">
+                            <i class="fa-solid fa-box-open"></i>
+                            <span>Productos</span>
+                        </a>
+                        <a href="#clientes" role="button" class="menu-button">
+                            <i class="fa-solid fa-users"></i>
+                            <span>Clientes</span>
+                        </a>
+                        <a href="#historial" role="button" class="menu-button">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                            <span>Historial</span>
+                        </a>
+                        <a href="#estadistica" role="button" class="menu-button">
+                            <i class="fa-solid fa-chart-line"></i>
+                            <span>Estadística</span>
+                        </a>
+                        <a href="#respaldo" role="button" class="menu-button">
+                            <i class="fa-solid fa-file-export"></i>
+                            <span>Respaldo</span>
+                        </a>
                     </div>
+                </div>
 
-                    <h3>Productos en Carrito</h3>
-                    <ul id="cart-item-list" class="cart-item-list">
-                        <!-- Los productos en el carrito se cargarán aquí -->
-                    </ul>
-                    <hr>
-                    <div style="text-align: right; font-weight: bold; font-size: 1.2rem;">
-                        Total: $<span id="cart-total">0</span>
-                    </div>
-                    <br>
-                    <button onclick="generateReceipt()" class="contrast" style="width: 100%;">Generar Boleta</button>
-                </article>
-            </div>
-
-            <div id="productos" class="section-container">
-                <article class="card">
-                    <h2>Gestión de Productos</h2>
-                    <form id="product-form">
-                        <div class="grid">
-                            <label for="product-code">Código
-                                <input type="text" id="product-code" name="product-code">
-                            </label>
-                            <label for="product-name">Producto
-                                <input type="text" id="product-name" name="product-name" required>
-                            </label>
-                            <label for="product-price">Precio
-                                <input type="number" id="product-price" name="product-price" required>
-                            </label>
-                            <label for="product-stock">Stock
-                                <input type="number" id="product-stock" name="product-stock">
-                            </label>
+                <!-- Secciones de Categoría -->
+                <div id="carrito" class="section-container">
+                    <header>
+                        <a href="#" class="secondary" role="button" onclick="showMainMenu()">
+                            <i class="fa-solid fa-arrow-left"></i> Volver
+                        </a>
+                    </header>
+                    <article class="card">
+                        <h2>Carrito de Venta</h2>
+                        <div class="cart-controls">
+                            <div class="search-container">
+                                 <label for="product-search">Buscar Producto por nombre o código
+                                    <input type="text" id="product-search" name="product-search">
+                                    <div id="search-suggestions" role="listbox"></div>
+                                </label>
+                            </div>
+                            <button onclick="openBarcodeScannerModal()" class="secondary scanner-button"><i class="fa-solid fa-barcode"></i> Escanear Código</button>
                         </div>
-                        <button type="submit" class="contrast">Añadir/Guardar Producto</button>
-                    </form>
-                    <hr>
-                    <input type="file" id="import-products" accept=".csv, .xlsx">
-                    <button onclick="importProducts()" class="secondary">Importar Excel</button>
-                    <p id="import-products-message"></p>
-                    <br>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Código</th>
-                                <th>Producto</th>
-                                <th>Precio</th>
-                                <th>Stock</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="product-list">
-                            <!-- Los productos se cargarán aquí -->
-                        </tbody>
-                    </table>
-                </article>
-            </div>
 
-            <div id="clientes" class="section-container">
-                <article class="card">
-                    <h2>Gestión de Clientes</h2>
-                    <form id="client-form">
-                        <div class="grid">
-                            <label for="client-name">Nombre
-                                <input type="text" id="client-name" name="client-name" required>
-                            </label>
-                            <label for="client-phone">Teléfono
-                                <input type="text" id="client-phone" name="client-phone">
-                            </label>
-                            <label for="client-address">Dirección
-                                <input type="text" id="client-address" name="client-address">
-                            </label>
+                        <!-- Selección de Cliente (actualizado) -->
+                        <div class="client-search-container" style="margin-top: 1rem;">
+                            <label for="customer-input">Cliente:</label>
+                            <input type="text" id="customer-input" placeholder="Nombre del cliente...">
+                            <div id="client-suggestions"></div>
                         </div>
-                        <button type="submit" class="contrast">Añadir/Guardar Cliente</button>
-                    </form>
-                    <hr>
-                    <input type="file" id="import-clients" accept=".csv, .xlsx">
-                    <button onclick="importClients()" class="secondary">Importar Excel</button>
-                    <p id="import-clients-message"></p>
-                    <br>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Teléfono</th>
-                                <th>Dirección</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="client-list">
-                            <!-- Los clientes se cargarán aquí -->
-                        </tbody>
-                    </table>
-                </article>
-            </div>
 
-            <div id="historial" class="section-container">
-                <article class="card">
-                    <h2>Historial de Ventas</h2>
-                    <table style="width: 100%;">
-                        <thead>
-                            <tr>
-                                <th>N° Boleta</th>
-                                <th>Fecha</th>
-                                <th>Cliente</th>
-                                <th>Total</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="sales-history-list">
-                            <!-- El historial de ventas se cargará aquí -->
-                        </tbody>
-                    </table>
-                </article>
-            </div>
+                        <h3>Productos en Carrito</h3>
+                        <ul id="cart-item-list" class="cart-item-list">
+                            <!-- Los productos en el carrito se cargarán aquí -->
+                        </ul>
+                        <hr>
+                        <div style="text-align: right; font-weight: bold; font-size: 1.2rem;">
+                            Total: $<span id="cart-total">0</span>
+                        </div>
+                        <br>
+                        <button onclick="generatePDFReceipt()" class="contrast" style="width: 100%;">Generar Boleta</button>
+                    </article>
+                </div>
 
-            <div id="estadistica" class="section-container">
-                <article class="card">
-                    <h2>Estadísticas</h2>
-                    <div class="grid">
-                        <label for="filter-client">Filtrar por Cliente
-                            <select id="filter-client">
-                                <option value="">Todos los clientes</option>
+                <div id="productos" class="section-container">
+                    <header>
+                        <a href="#" class="secondary" role="button" onclick="showMainMenu()">
+                            <i class="fa-solid fa-box-open"></i> Volver
+                        </a>
+                    </header>
+                    <article class="card">
+                        <h2>Gestión de Productos</h2>
+                        <form id="product-form">
+                            <div class="grid">
+                                <label for="product-code">Código
+                                    <input type="text" id="product-code" name="product-code">
+                                </label>
+                                <label for="product-name">Producto
+                                    <input type="text" id="product-name" name="product-name" required>
+                                </label>
+                                <label for="product-price">Precio
+                                    <input type="number" id="product-price" name="product-price" required>
+                                </label>
+                                <label for="product-stock">Stock
+                                    <input type="number" id="product-stock" name="product-stock">
+                                </label>
+                            </div>
+                            <button type="submit" class="contrast">Añadir/Guardar Producto</button>
+                        </form>
+                        
+                        <button onclick="importProductsOnline()" class="secondary" style="width: 100%; margin-top: 1rem;"><i class="fa-brands fa-google-drive"></i> Importar Hoja de Cálculo Online</button>
+                        
+                        <br>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Producto</th>
+                                    <th>Precio</th>
+                                    <th>Stock</th>
+                                </tr>
+                            </thead>
+                            <tbody id="product-list">
+                                <!-- Los productos se cargarán aquí -->
+                            </tbody>
+                        </table>
+                    </article>
+                </div>
+
+                <div id="clientes" class="section-container">
+                    <header>
+                        <a href="#" class="secondary" role="button" onclick="showMainMenu()">
+                            <i class="fa-solid fa-users"></i> Volver
+                        </a>
+                    </header>
+                    <article class="card">
+                        <h2>Gestión de Clientes</h2>
+                        <form id="client-form">
+                            <div class="grid">
+                                <label for="client-name">Nombre
+                                    <input type="text" id="client-name" name="client-name" required>
+                                </label>
+                                <label for="client-phone">Teléfono
+                                    <input type="text" id="client-phone" name="client-phone">
+                                </label>
+                                <label for="client-address">Dirección
+                                    <input type="text" id="client-address" name="client-address">
+                                </label>
+                            </div>
+                            <button type="submit" class="contrast">Añadir/Guardar Cliente</button>
+                        </form>
+                        
+                        <button onclick="importClientsOnline()" class="secondary" style="width: 100%; margin-top: 1rem;"><i class="fa-brands fa-google-drive"></i> Importar Hoja de Cálculo Online</button>
+
+                        <br>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Teléfono</th>
+                                    <th>Dirección</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="client-list">
                                 <!-- Los clientes se cargarán aquí -->
-                            </select>
-                        </label>
-                        <label for="start-date">Fecha de inicio
-                            <input type="date" id="start-date">
-                        </label>
-                        <label for="end-date">Fecha de fin
-                            <input type="date" id="end-date">
-                        </label>
-                    </div>
-                    <button onclick="renderStatistics()" class="secondary">Aplicar Filtros</button>
-                    <hr>
-                    <div class="grid">
-                        <div class="card">
-                            <h3>Total de Ventas</h3>
-                            <p style="font-size: 2rem; font-weight: bold;">$<span id="total-sales">0</span></p>
-                        </div>
-                        <div class="card">
-                            <h3>Productos Más Vendidos</h3>
-                            <ul id="top-products-list" style="list-style: none; padding: 0; text-align: left;">
-                                <!-- Los productos más vendidos se cargarán aquí -->
-                            </ul>
-                        </div>
-                    </div>
-                </article>
-            </div>
-        </main>
-    </div>
+                            </tbody>
+                        </table>
+                    </article>
+                </div>
 
-    <!-- Modal para el lector de códigos de barras -->
-    <div id="barcode-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-button" onclick="closeBarcodeScannerModal()">&times;</span>
-            <h3>Escanear Código de Barras</h3>
-            <div id="barcode-scanner-area"></div>
-            <p id="barcode-result-message"></p>
+                <div id="historial" class="section-container">
+                    <header>
+                        <a href="#" class="secondary" role="button" onclick="showMainMenu()">
+                            <i class="fa-solid fa-clock-rotate-left"></i> Volver
+                        </a>
+                    </header>
+                    <article class="card">
+                        <h2>Historial de Ventas</h2>
+                        <table style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>N° Boleta</th>
+                                    <th>Fecha</th>
+                                    <th>Cliente</th>
+                                    <th>Total</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sales-history-list">
+                                <!-- El historial de ventas se cargará aquí -->
+                            </tbody>
+                        </table>
+                    </article>
+                </div>
+
+                <div id="estadistica" class="section-container">
+                    <header>
+                        <a href="#" class="secondary" role="button" onclick="showMainMenu()">
+                            <i class="fa-solid fa-chart-line"></i> Volver
+                        </a>
+                    </header>
+                    <article class="card">
+                        <h2>Estadísticas</h2>
+                        <div class="grid">
+                            <label for="filter-client">Filtrar por Cliente
+                                <select id="filter-client">
+                                    <option value="">Todos los clientes</option>
+                                    <!-- Los clientes se cargarán aquí -->
+                                </select>
+                            </label>
+                            <label for="start-date">Fecha de inicio
+                                <input type="date" id="start-date">
+                            </label>
+                            <label for="end-date">Fecha de fin
+                                <input type="date" id="end-date">
+                            </label>
+                        </div>
+                        <div class="grid" style="margin-top: 1rem;">
+                            <button onclick="renderStatistics()" class="secondary">Aplicar Filtros</button>
+                            <button onclick="generateDetailedClientReport()" class="contrast" id="generate-report-btn" style="display: none;"><i class="fa-solid fa-file-pdf"></i> Generar Reporte Detallado</button>
+                        </div>
+                        <hr>
+                        <div class="grid">
+                            <div class="card">
+                                <h3>Total de Ventas</h3>
+                                <p style="font-size: 2rem; font-weight: bold;">$<span id="total-sales">0</span></p>
+                            </div>
+                            <div class="card">
+                                <h3>Top 5 Productos Vendidos</h3>
+                                <ul id="top-products-list" style="list-style: none; padding: 0; text-align: left;">
+                                    <!-- Los productos más vendidos se cargarán aquí -->
+                                </ul>
+                            </div>
+                            <div class="card">
+                                <h3>Top 5 Clientes por Monto Total</h3>
+                                <ul id="top-clients-list" style="list-style: none; padding: 0; text-align: left;">
+                                    <!-- Los clientes más compradores se cargarán aquí -->
+                                </ul>
+                            </div>
+                        </div>
+                        <!-- Nuevo apartado para el listado de compras -->
+                        <div id="client-purchases-details" style="margin-top: 2rem; display: none;">
+                            <h3>Detalle de Compras del Cliente</h3>
+                            <div id="client-purchases-list">
+                                <!-- Las compras del cliente se cargarán aquí -->
+                            </div>
+                        </div>
+                    </article>
+                </div>
+                
+                <!-- Sección de Respaldo -->
+                <div id="respaldo" class="section-container">
+                    <header>
+                        <a href="#" class="secondary" role="button" onclick="showMainMenu()">
+                            <i class="fa-solid fa-arrow-left"></i> Volver
+                        </a>
+                    </header>
+                    <article class="card">
+                        <h2>Respaldo y Recuperación de Datos</h2>
+                        <p>Guarda una copia de seguridad de todos tus productos, clientes e historial de ventas o carga un archivo para restaurar la información.</p>
+                        <div class="grid">
+                            <button onclick="generateBackupFile()" class="contrast"><i class="fa-solid fa-download"></i> Generar Respaldo</button>
+                            <label for="backup-file" class="secondary" style="cursor: pointer; text-align: center; display: block; width: 100%;"><i class="fa-solid fa-upload"></i> Cargar Respaldo</label>
+                            <input type="file" id="backup-file" accept=".json" style="display: none;">
+                        </div>
+                    </article>
+                </div>
+
+            </main>
         </div>
+
+        <!-- Modal para el lector de códigos de barras -->
+        <div id="barcode-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-button" onclick="closeBarcodeScannerModal()">&times;</span>
+                <h3>Escanear Código de Barras</h3>
+                <div id="barcode-scanner-area"></div>
+                <p id="barcode-result-message"></p>
+            </div>
+        </div>
+        
+        <!-- Modal para la boleta PDF (se oculta el iframe) -->
+        <div id="receipt-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-button" onclick="closeReceiptModal()">&times;</span>
+                <h3>Boleta Generada</h3>
+                <p class="receipt-message">Tu boleta se ha generado correctamente. Puedes descargarla o imprimirla desde aquí.</p>
+                <div class="grid" style="margin-top: 1rem;">
+                    <button onclick="downloadPDF()" class="secondary">Descargar PDF</button>
+                    <button onclick="printPDF()" class="contrast">Imprimir</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal para detalles de venta -->
+        <div id="sale-details-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-button" onclick="closeSaleDetailsModal()">&times;</span>
+                <h3>Detalle de la Venta</h3>
+                <div id="sale-details-content" class="receipt">
+                    <!-- Los detalles de la venta se cargan aquí -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenedor para notificaciones -->
+        <div id="notification-container" class="notification"></div>
     </div>
     
-    <!-- Modal para la boleta -->
-    <div id="receipt-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-button" onclick="closeReceiptModal()">&times;</span>
-            <div id="receipt-content" class="receipt">
-                <!-- El contenido de la boleta se cargará aquí -->
-            </div>
-            <button onclick="printReceipt()" class="contrast" style="margin-top: 1rem;">Imprimir Boleta</button>
-        </div>
-    </div>
-    
-    <!-- Modal para detalles de venta -->
-    <div id="sale-details-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-button" onclick="closeSaleDetailsModal()">&times;</span>
-            <h3>Detalle de la Venta</h3>
-            <div id="sale-details-content" class="receipt">
-                <!-- Los detalles de la venta se cargan aquí -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Librería js-xlsx para importar archivos de Excel -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
-    <!-- Librería QuaggaJS para el escáner de códigos de barras -->
+    <!-- Librerías JS -->
     <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
     <script>
-        // Funciones para gestionar el localStorage y la interfaz de usuario
+        // Variables globales para el estado de la aplicación
+        let products = [];
+        let clients = [];
+        let salesHistory = [];
 
         // Identifica los elementos HTML
         const productForm = document.getElementById('product-form');
@@ -457,102 +621,122 @@
         const cartTotalEl = document.getElementById('cart-total');
         const barcodeModal = document.getElementById('barcode-modal');
         const receiptModal = document.getElementById('receipt-modal');
-        const receiptContent = document.getElementById('receipt-content');
         const salesHistoryList = document.getElementById('sales-history-list');
         const totalSalesEl = document.getElementById('total-sales');
         const topProductsList = document.getElementById('top-products-list');
+        const topClientsList = document.getElementById('top-clients-list');
         const saleDetailsModal = document.getElementById('sale-details-modal');
         const saleDetailsContent = document.getElementById('sale-details-content');
         const filterClientSelect = document.getElementById('filter-client');
         const startDateInput = document.getElementById('start-date');
         const endDateInput = document.getElementById('end-date');
+        const mainMenu = document.getElementById('main-menu');
+        const sections = document.querySelectorAll('.section-container');
+        const notificationContainer = document.getElementById('notification-container');
+        const customerInputEl = document.getElementById('customer-input');
+        const clientSuggestionsEl = document.getElementById('client-suggestions');
+        const backupFileInput = document.getElementById('backup-file');
+        const clientPurchasesDetails = document.getElementById('client-purchases-details');
+        const clientPurchasesList = document.getElementById('client-purchases-list');
+        const generateReportBtn = document.getElementById('generate-report-btn');
+        
+        // Elementos del formulario de inicio de sesión
+        const loginFormContainer = document.getElementById('login-form-container');
+        const loginForm = document.getElementById('login-form');
+        const appContainer = document.getElementById('app-container');
 
-        let editProductIndex = -1; // Para saber si estamos editando un producto
-        let editClientIndex = -1; // Para saber si estamos editando un cliente
+        const { jsPDF } = window.jspdf;
 
-        // --- Funciones de gestión de datos ---
+        let editProductCode = null;
+        let editClientName = null;
+        let quaggaIsRunning = false;
+        let currentPDFDoc = null;
 
-        function getProducts() {
-            return JSON.parse(localStorage.getItem('products')) || [];
+        // --- Funciones de Utilidad ---
+
+        function showNotification(message, duration = 3000) {
+            notificationContainer.textContent = message;
+            notificationContainer.classList.add('show');
+            setTimeout(() => {
+                notificationContainer.classList.remove('show');
+            }, duration);
         }
 
-        function saveProducts(products) {
+        function generateSimpleCode(length = 6) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // --- Funciones de gestión de datos con localStorage ---
+
+        function loadData() {
+            products = JSON.parse(localStorage.getItem('products')) || [];
+            clients = JSON.parse(localStorage.getItem('clients')) || [];
+            salesHistory = JSON.parse(localStorage.getItem('salesHistory')) || [];
+            renderAll();
+        }
+
+        function saveData() {
             localStorage.setItem('products', JSON.stringify(products));
-        }
-
-        function getClients() {
-            return JSON.parse(localStorage.getItem('clients')) || [];
-        }
-
-        function saveClients(clients) {
             localStorage.setItem('clients', JSON.stringify(clients));
+            localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
+            renderAll();
         }
 
-        function getCart() {
-            return JSON.parse(localStorage.getItem('cart')) || [];
+        function renderAll() {
+            renderProducts();
+            renderClients();
+            renderSalesHistory();
+            renderStatistics();
         }
 
-        function saveCart(cart) {
-            localStorage.setItem('cart', JSON.stringify(cart));
-        }
-
-        function getSalesHistory() {
-            return JSON.parse(localStorage.getItem('salesHistory')) || [];
-        }
-        
-        function saveSalesHistory(history) {
-            localStorage.setItem('salesHistory', JSON.stringify(history));
-        }
-
-        function getReceiptNumber() {
-            const currentNumber = parseInt(localStorage.getItem('receiptNumber') || '0');
-            return currentNumber + 1;
-        }
-
-        function incrementReceiptNumber() {
-            let currentNumber = parseInt(localStorage.getItem('receiptNumber') || '0');
-            localStorage.setItem('receiptNumber', currentNumber + 1);
-        }
-        
         // --- Funciones de renderizado (UI) ---
 
+        function showSection(sectionId) {
+            sections.forEach(section => section.classList.remove('active'));
+            mainMenu.classList.remove('active');
+            document.getElementById(sectionId).classList.add('active');
+        }
+
+        function showMainMenu() {
+            sections.forEach(section => section.classList.remove('active'));
+            mainMenu.classList.add('active');
+        }
+
         function renderProducts() {
-            const products = getProducts();
             productList.innerHTML = '';
-            products.forEach((product, index) => {
+            products.forEach((product) => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${product.code || 'N/A'}</td>
                     <td>${product.name}</td>
-                    <td>${product.price}</td>
+                    <td>$${product.price}</td>
                     <td>${product.stock || 'N/A'}</td>
-                    <td>
-                        <button onclick="editProduct(${index})" class="secondary">Editar</button>
-                        <button onclick="deleteProduct(${index})" class="contrast">Eliminar</button>
-                    </td>
                 `;
                 productList.appendChild(row);
             });
         }
 
         function renderClients() {
-            const clients = getClients();
             clientList.innerHTML = '';
-            filterClientSelect.innerHTML = '<option value="">Todos los clientes</option>'; // Limpiar opciones
-            clients.forEach((client, index) => {
+            filterClientSelect.innerHTML = '<option value="">Todos los clientes</option>';
+            clients.forEach((client) => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${client.name}</td>
                     <td>${client.phone || 'N/A'}</td>
                     <td>${client.address || 'N/A'}</td>
                     <td>
-                        <button onclick="editClient(${index})" class="secondary">Editar</button>
-                        <button onclick="deleteClient(${index})" class="contrast">Eliminar</button>
+                        <button onclick="editClient('${client.name}')" class="secondary">Editar</button>
+                        <button onclick="deleteClient('${client.name}')" class="contrast">Eliminar</button>
                     </td>
                 `;
                 clientList.appendChild(row);
 
-                // Añadir opción al filtro de estadísticas
                 const option = document.createElement('option');
                 option.value = client.name;
                 option.textContent = client.name;
@@ -561,7 +745,7 @@
         }
 
         function renderCart() {
-            const cart = getCart();
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
             cartItemList.innerHTML = '';
             let total = 0;
             if (cart.length === 0) {
@@ -587,42 +771,41 @@
                     cartItemList.appendChild(listItem);
                 });
             }
-            cartTotalEl.textContent = total;
-            saveCart(cart);
+            cartTotalEl.textContent = Math.round(total);
+            localStorage.setItem('cart', JSON.stringify(cart));
         }
 
         function renderSalesHistory() {
-            const history = getSalesHistory();
             salesHistoryList.innerHTML = '';
-            history.sort((a, b) => new Date(b.date) - new Date(a.date)); // Ordena por fecha (el más reciente primero)
-            
-            if (history.length === 0) {
+            salesHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+            if (salesHistory.length === 0) {
                 salesHistoryList.innerHTML = '<tr><td colspan="5" style="text-align: center;">No hay ventas registradas.</td></tr>';
                 return;
             }
-
-            history.forEach(sale => {
+            salesHistory.forEach(sale => {
                 const row = document.createElement('tr');
                 row.style.cursor = 'pointer';
-                row.onclick = () => showSaleDetails(sale.id);
+                row.onclick = () => showSaleDetails(sale.receiptNumber);
+                const saleId = String(sale.receiptNumber).padStart(4, '0');
+                const clientName = sale.clientName || 'N/A';
+                const total = sale.total || 0;
                 row.innerHTML = `
-                    <td>${String(sale.id).padStart(4, '0')}</td>
-                    <td>${new Date(sale.date).toLocaleString()}</td>
-                    <td>${sale.clientName || 'N/A'}</td>
-                    <td>$${sale.total.toFixed(0)}</td>
-                    <td><button onclick="event.stopPropagation(); showSaleDetails(${sale.id})" class="secondary">Ver</button></td>
+                    <td>${saleId}</td>
+                    <td>${new Date(sale.date).toLocaleDateString()}</td>
+                    <td>${clientName}</td>
+                    <td>$${total.toFixed(0)}</td>
+                    <td><button onclick="event.stopPropagation(); showSaleDetails('${sale.receiptNumber}')" class="secondary">Ver</button></td>
                 `;
                 salesHistoryList.appendChild(row);
             });
         }
 
         function renderStatistics() {
-            const history = getSalesHistory();
             const selectedClient = filterClientSelect.value;
             const startDate = startDateInput.value ? new Date(startDateInput.value) : null;
             const endDate = endDateInput.value ? new Date(endDateInput.value) : null;
             
-            const filteredHistory = history.filter(sale => {
+            const filteredHistory = salesHistory.filter(sale => {
                 const saleDate = new Date(sale.date);
                 const clientMatch = !selectedClient || sale.clientName === selectedClient;
                 const dateMatch = (!startDate || saleDate >= startDate) && (!endDate || saleDate <= endDate);
@@ -631,22 +814,25 @@
             
             let totalSales = 0;
             const productSales = {};
+            const customerTotals = {};
 
             filteredHistory.forEach(sale => {
                 totalSales += sale.total;
                 sale.items.forEach(item => {
-                    if (productSales[item.product.name]) {
-                        productSales[item.product.name] += item.quantity;
-                    } else {
-                        productSales[item.product.name] = item.quantity;
-                    }
+                    const productName = item.product.name;
+                    productSales[productName] = (productSales[productName] || 0) + item.quantity;
                 });
+                const customerName = sale.clientName;
+                customerTotals[customerName] = (customerTotals[customerName] || 0) + sale.total;
             });
 
             // Ordenar productos por cantidad vendida
             const sortedProducts = Object.entries(productSales).sort(([, a], [, b]) => b - a);
+            // Ordenar clientes por monto total
+            const sortedCustomers = Object.entries(customerTotals).sort(([, a], [, b]) => b - a);
 
-            totalSalesEl.textContent = totalSales.toFixed(0);
+            totalSalesEl.textContent = Math.round(totalSales);
+
             topProductsList.innerHTML = '';
             if (sortedProducts.length === 0) {
                 topProductsList.innerHTML = '<li>No hay productos vendidos en este período.</li>';
@@ -657,213 +843,144 @@
                     topProductsList.appendChild(listItem);
                 });
             }
+
+            topClientsList.innerHTML = '';
+            if (sortedCustomers.length === 0) {
+                topClientsList.innerHTML = '<li>No hay clientes con compras en este período.</li>';
+            } else {
+                sortedCustomers.slice(0, 5).forEach(([name, total]) => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `${name}: $${Math.round(total)}`;
+                    topClientsList.appendChild(listItem);
+                });
+            }
+            
+            // Mostrar u ocultar el botón de reporte detallado
+            if (selectedClient && startDate && endDate) {
+                generateReportBtn.style.display = 'block';
+            } else {
+                generateReportBtn.style.display = 'none';
+            }
+            // Llamar a la función para mostrar el detalle de compras
+            renderClientPurchases(selectedClient, filteredHistory);
         }
+
+        function renderClientPurchases(selectedClient, filteredHistory) {
+            clientPurchasesList.innerHTML = '';
+            if (selectedClient && filteredHistory.length > 0) {
+                clientPurchasesDetails.style.display = 'block';
+                filteredHistory.forEach(sale => {
+                    const saleCard = document.createElement('div');
+                    saleCard.classList.add('card');
+                    saleCard.style.marginTop = '1rem';
+                    
+                    let itemsHtml = '';
+                    sale.items.forEach(item => {
+                        const subtotal = item.product.price * item.quantity;
+                        itemsHtml += `
+                            <p style="margin: 0; font-size: 0.9em;">- ${item.product.name} (${item.quantity} unid.) - $${Math.round(subtotal)}</p>
+                        `;
+                    });
+
+                    saleCard.innerHTML = `
+                        <p style="margin: 0;"><strong>Boleta N°:</strong> ${String(sale.receiptNumber).padStart(4, '0')}</p>
+                        <p style="margin: 0;"><strong>Fecha:</strong> ${new Date(sale.date).toLocaleDateString()}</p>
+                        <p style="margin: 0;"><strong>Total:</strong> $${Math.round(sale.total)}</p>
+                        <details style="margin-top: 0.5rem;">
+                            <summary>Ver detalle de productos</summary>
+                            ${itemsHtml}
+                        </details>
+                    `;
+                    clientPurchasesList.appendChild(saleCard);
+                });
+            } else {
+                clientPurchasesDetails.style.display = 'none';
+            }
+        }
+
 
         // --- Funciones de formulario y acciones ---
 
         productForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const products = getProducts();
-            const code = document.getElementById('product-code').value;
-            const name = document.getElementById('product-name').value;
-            const price = document.getElementById('product-price').value;
-            const stock = document.getElementById('product-stock').value;
+            const productCode = document.getElementById('product-code').value || generateSimpleCode();
+            const productData = {
+                code: productCode,
+                name: document.getElementById('product-name').value,
+                price: parseFloat(document.getElementById('product-price').value),
+                stock: parseInt(document.getElementById('product-stock').value) || null
+            };
 
-            // Si estamos editando, actualizamos el producto existente
-            if (editProductIndex !== -1) {
-                products[editProductIndex] = {
-                    code: code || null,
-                    name: name,
-                    price: parseFloat(price),
-                    stock: stock ? parseInt(stock) : null
-                };
-                editProductIndex = -1;
+            const existingIndex = products.findIndex(p => p.code === editProductCode);
+            if (editProductCode && existingIndex !== -1) {
+                products[existingIndex] = productData;
+                showNotification('Producto actualizado con éxito.');
+                editProductCode = null;
             } else {
-                // Si no, añadimos un nuevo producto
-                products.push({
-                    code: code || null,
-                    name: name,
-                    price: parseFloat(price),
-                    stock: stock ? parseInt(stock) : null
-                });
+                products.push(productData);
+                showNotification('Producto añadido con éxito.');
             }
-            saveProducts(products);
             productForm.reset();
-            renderProducts();
+            saveData();
         });
 
-        function editProduct(index) {
-            const products = getProducts();
-            const product = products[index];
-            document.getElementById('product-code').value = product.code;
-            document.getElementById('product-name').value = product.name;
-            document.getElementById('product-price').value = product.price;
-            document.getElementById('product-stock').value = product.stock;
-            editProductIndex = index; // Guardamos el índice para la edición
+        function editProduct(code) {
+            const product = products.find(p => p.code === code);
+            if (product) {
+                document.getElementById('product-code').value = product.code;
+                document.getElementById('product-name').value = product.name;
+                document.getElementById('product-price').value = product.price;
+                document.getElementById('product-stock').value = product.stock;
+                editProductCode = code;
+            } else {
+                showNotification('Producto no encontrado.');
+            }
         }
 
-        function deleteProduct(index) {
-            const products = getProducts();
-            products.splice(index, 1);
-            saveProducts(products);
-            renderProducts();
+        function deleteProduct(code) {
+            products = products.filter(p => p.code !== code);
+            showNotification('Producto eliminado con éxito.');
+            saveData();
         }
 
         clientForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const clients = getClients();
-            const name = document.getElementById('client-name').value;
-            const phone = document.getElementById('client-phone').value;
-            const address = document.getElementById('client-address').value;
+            const clientName = document.getElementById('client-name').value;
+            const clientData = {
+                name: clientName,
+                phone: document.getElementById('client-phone').value || null,
+                address: document.getElementById('client-address').value || null
+            };
 
-            if (editClientIndex !== -1) {
-                clients[editClientIndex] = { name, phone: phone || null, address: address || null };
-                editClientIndex = -1;
+            const existingIndex = clients.findIndex(c => c.name === editClientName);
+            if (editClientName && existingIndex !== -1) {
+                clients[existingIndex] = clientData;
+                showNotification('Cliente actualizado con éxito.');
+                editClientName = null;
             } else {
-                clients.push({ name, phone: phone || null, address: address || null });
+                clients.push(clientData);
+                showNotification('Cliente añadido con éxito.');
             }
-            
-            saveClients(clients);
             clientForm.reset();
-            renderClients();
+            saveData();
         });
 
-        function editClient(index) {
-            const clients = getClients();
-            const client = clients[index];
-            document.getElementById('client-name').value = client.name;
-            document.getElementById('client-phone').value = client.phone;
-            document.getElementById('client-address').value = client.address;
-            editClientIndex = index;
-        }
-
-        function deleteClient(index) {
-            const clients = getClients();
-            clients.splice(index, 1);
-            saveClients(clients);
-            renderClients();
-        }
-
-        function importProducts() {
-            const fileInput = document.getElementById('import-products');
-            const file = fileInput.files[0];
-            const messageEl = document.getElementById('import-products-message');
-            if (!file) {
-                messageEl.textContent = 'Por favor, selecciona un archivo de Excel.';
-                return;
+        function editClient(name) {
+            const client = clients.find(c => c.name === name);
+            if (client) {
+                document.getElementById('client-name').value = client.name;
+                document.getElementById('client-phone').value = client.phone;
+                document.getElementById('client-address').value = client.address;
+                editClientName = name;
+            } else {
+                showNotification('Cliente no encontrado.');
             }
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    const sheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[sheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1, raw: false});
-
-                    if (jsonData.length < 2) {
-                        messageEl.textContent = 'El archivo de Excel está vacío o no tiene el formato correcto.';
-                        return;
-                    }
-
-                    const products = getProducts();
-                    const headers = jsonData[0].map(h => h.trim().toLowerCase());
-                    const articleIndex = headers.indexOf('articulo');
-                    const priceIndex = headers.indexOf('precio');
-                    const codeIndex = headers.indexOf('codigo');
-                    const stockIndex = headers.indexOf('stock');
-
-                    if (articleIndex === -1 || priceIndex === -1) {
-                        messageEl.textContent = 'El archivo debe tener las columnas "Articulo" y "precio".';
-                        return;
-                    }
-
-                    for (let i = 1; i < jsonData.length; i++) {
-                        const row = jsonData[i];
-                        if (row.length === 0) continue;
-
-                        const product = {
-                            code: codeIndex !== -1 ? (row[codeIndex] || null) : null,
-                            name: row[articleIndex] || '',
-                            price: priceIndex !== -1 ? parseFloat(row[priceIndex]) : 0,
-                            stock: stockIndex !== -1 ? (row[stockIndex] ? parseInt(row[stockIndex]) : null) : null,
-                        };
-                        
-                        if (product.name && !isNaN(product.price)) {
-                            products.push(product);
-                        }
-                    }
-
-                    saveProducts(products);
-                    renderProducts();
-                    messageEl.textContent = 'Productos importados con éxito.';
-                    fileInput.value = '';
-                } catch (error) {
-                    console.error('Error al importar productos:', error);
-                    messageEl.textContent = 'Error al procesar el archivo. Asegúrate de que es un archivo de Excel válido.';
-                }
-            };
-            reader.readAsArrayBuffer(file);
         }
 
-        function importClients() {
-            const fileInput = document.getElementById('import-clients');
-            const file = fileInput.files[0];
-            const messageEl = document.getElementById('import-clients-message');
-            if (!file) {
-                messageEl.textContent = 'Por favor, selecciona un archivo de Excel.';
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    const sheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[sheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1, raw: false});
-
-                    if (jsonData.length < 2) {
-                        messageEl.textContent = 'El archivo de Excel está vacío o no tiene el formato correcto.';
-                        return;
-                    }
-
-                    const clients = getClients();
-                    const headers = jsonData[0].map(h => h.trim().toLowerCase());
-                    const nameIndex = headers.indexOf('nombre');
-                    const phoneIndex = headers.indexOf('telefono');
-                    const addressIndex = headers.indexOf('direccion');
-
-                    if (nameIndex === -1) {
-                        messageEl.textContent = 'El archivo debe tener la columna "Nombre".';
-                        return;
-                    }
-
-                    for (let i = 1; i < jsonData.length; i++) {
-                        const row = jsonData[i];
-                        if (row.length === 0) continue;
-                        const client = {
-                            name: row[nameIndex] || '',
-                            phone: phoneIndex !== -1 ? (row[phoneIndex] || null) : null,
-                            address: addressIndex !== -1 ? (row[addressIndex] || null) : null,
-                        };
-
-                        if (client.name) {
-                            clients.push(client);
-                        }
-                    }
-                    saveClients(clients);
-                    renderClients();
-                    messageEl.textContent = 'Clientes importados con éxito.';
-                    fileInput.value = '';
-                } catch (error) {
-                    console.error('Error al importar clientes:', error);
-                    messageEl.textContent = 'Error al procesar el archivo. Asegúrate de que es un archivo de Excel válido.';
-                }
-            };
-            reader.readAsArrayBuffer(file);
+        function deleteClient(name) {
+            clients = clients.filter(c => c.name !== name);
+            showNotification('Cliente eliminado con éxito.');
+            saveData();
         }
 
         // --- Funciones del Carrito ---
@@ -874,7 +991,6 @@
             suggestionsEl.innerHTML = '';
             
             if (searchTerm.length > 0) {
-                const products = getProducts();
                 const filteredProducts = products.filter(p => 
                     p.name.toLowerCase().includes(searchTerm) || 
                     (p.code && p.code.toLowerCase().includes(searchTerm))
@@ -907,7 +1023,7 @@
         });
 
         function addToCart(product) {
-            const cart = getCart();
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
             const existingItem = cart.find(item => item.product.code === product.code);
             
             if (existingItem) {
@@ -916,38 +1032,68 @@
                 cart.push({ product: product, quantity: 1 });
             }
 
-            saveCart(cart);
+            localStorage.setItem('cart', JSON.stringify(cart));
             renderCart();
+            showNotification(`Se añadió ${product.name} al carrito.`, 2000);
         }
 
         function updateCartItemQuantity(index, change) {
-            const cart = getCart();
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
             const item = cart[index];
             item.quantity += change;
 
             if (item.quantity <= 0) {
                 cart.splice(index, 1);
             }
-            saveCart(cart);
+            localStorage.setItem('cart', JSON.stringify(cart));
             renderCart();
         }
 
         function removeFromCart(index) {
-            const cart = getCart();
-            cart.splice(index, 1);
-            saveCart(cart);
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            const removedItem = cart.splice(index, 1);
+            localStorage.setItem('cart', JSON.stringify(cart));
             renderCart();
+            showNotification(`Se eliminó ${removedItem[0].product.name} del carrito.`, 2000);
         }
 
         function clearCart() {
             localStorage.removeItem('cart');
             renderCart();
+            customerInputEl.value = '';
         }
+        
+        // --- Lógica del Carrito con Cliente (actualizado) ---
+
+        customerInputEl.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            clientSuggestionsEl.innerHTML = '';
+            
+            if (searchTerm.length > 0) {
+                const filteredClients = clients.filter(c => c.name.toLowerCase().includes(searchTerm));
+                if (filteredClients.length > 0) {
+                    clientSuggestionsEl.style.display = 'block';
+                    filteredClients.forEach(client => {
+                        const suggestionItem = document.createElement('div');
+                        suggestionItem.classList.add('client-suggestion-item');
+                        suggestionItem.textContent = client.name;
+                        suggestionItem.addEventListener('click', () => {
+                            customerInputEl.value = client.name;
+                            clientSuggestionsEl.innerHTML = '';
+                            clientSuggestionsEl.style.display = 'none';
+                        });
+                        clientSuggestionsEl.appendChild(suggestionItem);
+                    });
+                } else {
+                    clientSuggestionsEl.style.display = 'none';
+                }
+            } else {
+                clientSuggestionsEl.style.display = 'none';
+            }
+        });
 
         // --- Lector de códigos de barras (QuaggaJS) ---
 
-        let quaggaIsRunning = false;
-        
         function openBarcodeScannerModal() {
             barcodeModal.style.display = 'flex';
             if (!quaggaIsRunning) {
@@ -969,7 +1115,7 @@
                     constraints: {
                         width: 640,
                         height: 480,
-                        facingMode: "environment" // Usa la cámara trasera
+                        facingMode: "environment"
                     },
                 },
                 decoder: {
@@ -987,16 +1133,12 @@
             });
             
             Quagga.onDetected(function (data) {
-                console.log("Barcode detected and processed: ", data);
                 const code = data.codeResult.code;
-                const products = getProducts();
                 const foundProduct = products.find(p => p.code === code);
                 
                 if (foundProduct) {
                     addToCart(foundProduct);
                     document.getElementById('barcode-result-message').textContent = `Producto encontrado y añadido: ${foundProduct.name}`;
-                    // Optional: stop scanner after finding one product
-                    // closeBarcodeScannerModal(); 
                 } else {
                     document.getElementById('barcode-result-message').textContent = `Producto con código ${code} no encontrado.`;
                 }
@@ -1010,106 +1152,134 @@
             }
         }
 
-        // --- Generación e impresión de Boleta ---
+        // --- Generación, visualización y descarga de Boleta en PDF ---
 
-        function generateReceipt() {
-            const cart = getCart();
+        function generatePDFReceipt() {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
             if (cart.length === 0) {
-                alert('El carrito está vacío. Añade productos para generar una boleta.');
+                showNotification('El carrito está vacío. Añade productos para generar una boleta.');
                 return;
             }
-            
-            const receiptNumber = getReceiptNumber();
-            const date = new Date();
-            
-            let itemsHtml = '';
-            let total = 0;
-            
-            cart.forEach(item => {
-                const subtotal = item.product.price * item.quantity;
-                total += subtotal;
-                itemsHtml += `
-                    <div class="receipt-item">
-                        <span>${item.product.name}</span>
-                        <span>$${item.product.price} x ${item.quantity} = $${subtotal.toFixed(0)}</span>
-                    </div>
-                `;
+
+            const doc = new jsPDF({
+                unit: 'mm',
+                format: [80, 200]
             });
-            
-            // Simular selección de cliente
-            const selectedClient = prompt('Introduce el nombre del cliente (opcional):');
 
-            const receiptHtml = `
-                <div class="receipt-header">
-                    <h3>AVEFENIX MULTIVENTAS</h3>
-                    <p>Boleta N° ${String(receiptNumber).padStart(4, '0')}</p>
-                    <p>${date.toLocaleDateString()} ${date.toLocaleTimeString()}</p>
-                    <p>Cliente: ${selectedClient || 'N/A'}</p>
-                </div>
-                <div class="receipt-details">
-                    ${itemsHtml}
-                </div>
-                <div class="receipt-total">
-                    TOTAL: $${total.toFixed(0)}
-                </div>
-                <div class="receipt-footer">
-                    <p>¡Gracias por tu compra!</p>
-                </div>
-            `;
+            let y = 10;
+            const margin = 5;
+            // Reducir el espacio entre líneas para una boleta más compacta
+            const lineHeight = 3; 
+            const fontSize = 8; 
+            const date = new Date();
+            const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
             
-            receiptContent.innerHTML = receiptHtml;
-            receiptModal.style.display = 'flex';
+            let clientName = customerInputEl.value.trim();
+            const existingClient = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
+            
+            if (clientName && !existingClient) {
+                 clients.push({ name: clientName });
+                 saveData();
+            }
 
-            // Guardar la venta en el historial antes de imprimir
+            const receiptNumber = salesHistory.length + 1;
+
             const sale = {
-                id: receiptNumber,
+                receiptNumber: receiptNumber,
                 date: date.toISOString(),
-                clientName: selectedClient || null,
+                clientName: clientName || null,
                 total: total,
                 items: cart
             };
-            saveSale(sale);
+
+            salesHistory.push(sale);
+            saveData();
+
+            doc.setFontSize(10);
+            doc.text("AVE FENIX MULTIVENTAS", 40, y, { align: 'center' });
+            y += lineHeight * 2;
+
+            doc.setFontSize(fontSize);
+            doc.text(`Fecha: ${date.toLocaleDateString()}`, margin, y);
+            y += lineHeight;
+            doc.text(`Cliente: ${clientName || 'N/A'}`, margin, y);
+            y += lineHeight * 2;
+
+            doc.line(margin, y, 80 - margin, y);
+            y += lineHeight;
+            
+            // Bucle para iterar sobre los productos del carrito
+            cart.forEach(item => {
+                const subtotal = item.product.price * item.quantity;
+                doc.text(`${item.product.name}, (${item.quantity})`, margin, y);
+                y += lineHeight;
+                doc.text(`$${Math.round(item.product.price)} x ${item.quantity} = $${Math.round(subtotal)}`, margin, y);
+                y += lineHeight * 2;
+            });
+            
+            // Si el contenido se extiende más allá de la página, agrega una nueva página
+            if (y > 180) {
+                 doc.addPage();
+                 y = 10;
+            }
+
+            doc.line(margin, y, 80 - margin, y);
+            y += lineHeight;
+
+            doc.setFontSize(10);
+            doc.text(`TOTAL: $${Math.round(total)}`, 75, y, { align: 'right' });
+            y += lineHeight * 2;
+            
+            currentPDFDoc = doc;
+
+            receiptModal.style.display = 'flex';
+            
+            clearCart();
         }
 
-        function saveSale(sale) {
-            const history = getSalesHistory();
-            history.push(sale);
-            saveSalesHistory(history);
-            renderSalesHistory();
-            renderStatistics();
+        function downloadPDF() {
+            if (currentPDFDoc) {
+                currentPDFDoc.save('boleta.pdf');
+            }
         }
 
-        function showSaleDetails(saleId) {
-            const history = getSalesHistory();
-            const sale = history.find(s => s.id === saleId);
-            if (!sale) return;
+        function printPDF() {
+            if (currentPDFDoc) {
+                currentPDFDoc.autoPrint();
+                window.open(currentPDFDoc.output('dataurlnewwindow'));
+            }
+        }
+
+        function showSaleDetails(receiptNumber) {
+            const sale = salesHistory.find(s => s.receiptNumber == receiptNumber);
+            if (!sale) {
+                showNotification("Venta no encontrada.");
+                return;
+            }
 
             let itemsHtml = '';
             sale.items.forEach(item => {
                 const subtotal = item.product.price * item.quantity;
                 itemsHtml += `
-                    <div class="receipt-item">
-                        <span>${item.product.name}</span>
-                        <span>$${item.product.price} x ${item.quantity} = $${subtotal.toFixed(0)}</span>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                        <span style="flex-grow: 1;">${item.product.name}</span>
+                        <span style="min-width: 100px; text-align: right;">$${Math.round(item.product.price)} x ${item.quantity} = $${Math.round(subtotal)}</span>
                     </div>
                 `;
             });
 
             const saleDetailsHtml = `
-                <div class="receipt-header">
+                <div style="text-align: center; font-size: 12px; line-height: 1.2;">
                     <h3>AVEFENIX MULTIVENTAS</h3>
-                    <p>Boleta N° ${String(sale.id).padStart(4, '0')}</p>
-                    <p>${new Date(sale.date).toLocaleDateString()} ${new Date(sale.date).toLocaleTimeString()}</p>
-                    <p>Cliente: ${sale.clientName || 'N/A'}</p>
+                    <p style="margin: 0; line-height: 1;">Boleta N°: ${String(sale.receiptNumber).padStart(4, '0')}</p>
+                    <p style="margin: 0; line-height: 1;">${new Date(sale.date).toLocaleDateString()} ${new Date(sale.date).toLocaleTimeString()}</p>
+                    <p style="margin: 0; line-height: 1;">Cliente: ${sale.clientName || 'N/A'}</p>
                 </div>
-                <div class="receipt-details">
+                <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; font-size: 12px; line-height: 1.2;">
                     ${itemsHtml}
                 </div>
-                <div class="receipt-total">
-                    TOTAL: $${sale.total.toFixed(0)}
-                </div>
-                <div class="receipt-footer">
-                    <p>¡Gracias por tu compra!</p>
+                <div style="text-align: right; font-weight: bold; font-size: 14px; margin-top: 10px;">
+                    TOTAL: $${Math.round(sale.total)}
                 </div>
             `;
             saleDetailsContent.innerHTML = saleDetailsHtml;
@@ -1124,65 +1294,317 @@
             saleDetailsModal.style.display = 'none';
         }
 
-        function printReceipt() {
-            const receiptSection = document.getElementById('receipt-content');
-            const originalContents = document.body.innerHTML;
-            const printContents = receiptSection.innerHTML;
-            
-            document.body.innerHTML = printContents;
-            window.print();
-            
-            document.body.innerHTML = originalContents;
-            window.location.reload(); // Recarga para restaurar la interfaz
-            incrementReceiptNumber();
-            clearCart();
+        // --- Funciones de Respaldo y Recuperación ---
+
+        function generateBackupFile() {
+            const dataToBackup = {
+                products: JSON.parse(localStorage.getItem('products')) || [],
+                clients: JSON.parse(localStorage.getItem('clients')) || [],
+                salesHistory: JSON.parse(localStorage.getItem('salesHistory')) || []
+            };
+            const jsonString = JSON.stringify(dataToBackup, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `avefenix_backup_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showNotification('Archivo de respaldo generado con éxito.');
         }
 
-        // --- Manejador para el cambio de secciones ---
-        document.addEventListener('DOMContentLoaded', () => {
-            const sections = document.querySelectorAll('.section-container');
-            const menuButtons = document.querySelectorAll('.menu-button');
-
-            function showSection(sectionId) {
-                sections.forEach(section => {
-                    section.classList.remove('active');
-                });
-                menuButtons.forEach(button => {
-                    button.removeAttribute('aria-current');
-                });
-
-                const targetSection = document.getElementById(sectionId);
-                const targetButton = document.querySelector(`.menu-button[href="#${sectionId}"]`);
-                
-                if (targetSection) {
-                    targetSection.classList.add('active');
-                    if (targetButton) {
-                        targetButton.setAttribute('aria-current', 'page');
-                    }
-                }
+        function importBackupFile(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
             }
 
-            menuButtons.forEach(button => {
-                button.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const sectionId = button.getAttribute('href').substring(1);
-                    showSection(sectionId);
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (importedData.products && importedData.clients && importedData.salesHistory) {
+                        localStorage.setItem('products', JSON.stringify(importedData.products));
+                        localStorage.setItem('clients', JSON.stringify(importedData.clients));
+                        localStorage.setItem('salesHistory', JSON.stringify(importedData.salesHistory));
+                        loadData();
+                        showNotification('Datos restaurados con éxito.');
+                        showMainMenu();
+                    } else {
+                        showNotification('Formato de archivo de respaldo no válido.');
+                    }
+                } catch (error) {
+                    console.error('Error al importar archivo de respaldo:', error);
+                    showNotification('Error al procesar el archivo. Asegúrate de que es un archivo JSON válido.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // --- GOOGLE SHEETS IMPORTACIÓN SIMPLIFICADA ---
+
+        async function importProductsOnline() {
+            showNotification('Importando productos...');
+            const sheetId = '1V36cj_AdIiqUkyOnBbdUIcXdGFgRPn00MDLRsfPXliw';
+            const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Error en la respuesta de la red.');
+                
+                const csvText = await response.text();
+                const rows = csvText.trim().split(/\r?\n/).map(row => row.split(','));
+
+                if (rows.length < 2) {
+                    showNotification('La hoja de cálculo de productos está vacía.');
+                    return;
+                }
+
+                const headers = rows[0].map(h => h.trim().toLowerCase());
+                const nameIndex = headers.indexOf('articulo');
+                const priceIndex = headers.indexOf('precio');
+                const codeIndex = headers.indexOf('codigo');
+                const stockIndex = headers.indexOf('stock');
+
+                if (nameIndex === -1 || priceIndex === -1) {
+                    showNotification('La hoja de productos debe tener columnas "articulo" y "precio".');
+                    return;
+                }
+
+                let importedCount = 0;
+                const newProducts = [];
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (row.length === 0 || !row[nameIndex]) continue;
+
+                    const product = {
+                        code: codeIndex !== -1 && row[codeIndex] ? row[codeIndex].trim() : generateSimpleCode(),
+                        name: row[nameIndex].trim() || '',
+                        price: priceIndex !== -1 ? parseFloat(row[priceIndex].replace('$', '').replace(/\./g, '').trim()) : 0,
+                        stock: stockIndex !== -1 && row[stockIndex] ? parseInt(row[stockIndex].trim()) : null,
+                    };
+                    
+                    if (product.name && !isNaN(product.price)) {
+                        newProducts.push(product);
+                        importedCount++;
+                    }
+                }
+                products = newProducts;
+                saveData();
+                showNotification(`Se importaron ${importedCount} productos con éxito.`);
+            } catch (err) {
+                console.error('Error al importar productos desde Google Sheets:', err);
+                showNotification('Error al acceder a la hoja de cálculo. Asegúrate de que es pública.');
+            }
+        }
+
+        async function importClientsOnline() {
+            showNotification('Importando clientes...');
+            const sheetId = '1V-ypbZlYuURXxKHYePZ_bYuW-oWc53SLdDsF4OQ6VNo';
+            const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Error en la respuesta de la red.');
+
+                const csvText = await response.text();
+                const rows = csvText.trim().split(/\r?\n/).map(row => row.split(','));
+
+                if (rows.length < 2) {
+                    showNotification('La hoja de cálculo de clientes está vacía.');
+                    return;
+                }
+
+                const headers = rows[0].map(h => h.trim().toLowerCase());
+                const nameIndex = headers.indexOf('nombre');
+                const phoneIndex = headers.indexOf('teléfono');
+                const addressIndex = headers.indexOf('dirección');
+
+                if (nameIndex === -1) {
+                    showNotification('La hoja de clientes debe tener la columna "nombre".');
+                    return;
+                }
+                let importedCount = 0;
+                const newClients = [];
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (row.length === 0 || !row[nameIndex]) continue;
+                    const client = {
+                        name: row[nameIndex].trim() || '',
+                        phone: phoneIndex !== -1 ? (row[phoneIndex] || '').trim() : null,
+                        address: addressIndex !== -1 ? (row[addressIndex] || '').trim() : null,
+                    };
+                    if (client.name) {
+                        newClients.push(client);
+                        importedCount++;
+                    }
+                }
+                clients = newClients;
+                saveData();
+                showNotification(`Se importaron ${importedCount} clientes con éxito.`);
+            } catch (err) {
+                 console.error('Error al importar clientes desde Google Sheets:', err);
+                showNotification('Error al acceder a la hoja de cálculo. Asegúrate de que es pública.');
+            }
+        }
+        
+        // --- Generación de reporte detallado ---
+        function generateDetailedClientReport() {
+            const selectedClient = filterClientSelect.value;
+            const startDate = startDateInput.value ? new Date(startDateInput.value) : null;
+            const endDate = endDateInput.value ? new Date(endDateInput.value) : null;
+
+            if (!selectedClient || !startDate || !endDate) {
+                showNotification('Por favor, selecciona un cliente y un rango de fechas para generar el reporte.');
+                return;
+            }
+
+            const filteredHistory = salesHistory.filter(sale => {
+                const saleDate = new Date(sale.date);
+                const clientMatch = sale.clientName === selectedClient;
+                const dateMatch = (saleDate >= startDate && saleDate <= endDate);
+                return clientMatch && dateMatch;
+            });
+
+            if (filteredHistory.length === 0) {
+                showNotification('No se encontraron ventas para este cliente en el período seleccionado.');
+                return;
+            }
+
+            // Agrupar y agregar productos
+            const productAggregates = {};
+            let grandTotal = 0;
+
+            filteredHistory.forEach(sale => {
+                sale.items.forEach(item => {
+                    const productCode = item.product.code;
+                    if (!productAggregates[productCode]) {
+                        productAggregates[productCode] = {
+                            name: item.product.name,
+                            totalQuantity: 0,
+                            totalAmount: 0
+                        };
+                    }
+                    const subtotal = item.product.price * item.quantity;
+                    productAggregates[productCode].totalQuantity += item.quantity;
+                    productAggregates[productCode].totalAmount += subtotal;
+                    grandTotal += subtotal;
                 });
             });
 
-            // Muestra la sección inicial
-            const initialSectionId = window.location.hash.substring(1) || 'carrito';
-            showSection(initialSectionId);
+            const doc = new jsPDF({
+                unit: 'mm',
+                format: 'a4',
+                orientation: 'portrait'
+            });
 
-            // Carga los datos iniciales
-            renderProducts();
-            renderClients();
-            renderCart();
-            renderSalesHistory();
-            renderStatistics();
+            let y = 15;
+            const margin = 15;
+            const lineHeight = 5;
+
+            // Header
+            doc.setFontSize(16);
+            doc.text("Reporte de Ventas Detallado", 105, y, { align: 'center' });
+            y += lineHeight * 2;
+            doc.setFontSize(12);
+            doc.text(`Cliente: ${selectedClient}`, margin, y);
+            y += lineHeight;
+            doc.text(`Período: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`, margin, y);
+            y += lineHeight * 2;
+
+            // Tabla de productos
+            doc.setFontSize(10);
+            doc.text('Producto', margin, y);
+            doc.text('Cantidad Total', 100, y, { align: 'center' });
+            doc.text('Monto Total ($)', 195, y, { align: 'right' });
+            y += lineHeight * 0.5;
+            doc.line(margin, y, 195, y);
+            y += lineHeight;
+
+            for (const code in productAggregates) {
+                const product = productAggregates[code];
+                doc.text(product.name, margin, y);
+                doc.text(product.totalQuantity.toString(), 100, y, { align: 'center' });
+                doc.text(Math.round(product.totalAmount).toString(), 195, y, { align: 'right' });
+                y += lineHeight;
+            }
+
+            y += lineHeight;
+            doc.line(margin, y, 195, y);
+            y += lineHeight;
+
+            // Total
+            doc.setFontSize(14);
+            doc.text(`TOTAL GENERAL: $${Math.round(grandTotal)}`, 195, y, { align: 'right' });
+
+            currentPDFDoc = doc;
+
+            receiptModal.style.display = 'flex';
+        }
+        
+        // --- Lógica de Autenticación y Carga Inicial ---
+        
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // Credenciales predeterminadas
+            const defaultUser = 'Mary';
+            const defaultPass = 'millo123';
+
+            if (username === defaultUser && password === defaultPass) {
+                localStorage.setItem('isAuthenticated', 'true');
+                showMainApp();
+            } else {
+                showNotification('Usuario o contraseña incorrectos.');
+            }
         });
 
-        // Simula alert() con un modal para evitar errores en el entorno de vista previa
+        function showMainApp() {
+            loginFormContainer.style.display = 'none';
+            appContainer.style.display = 'block';
+            document.body.removeEventListener('contextmenu', disableRightClick);
+            loadData();
+            renderCart();
+            filterClientSelect.addEventListener('change', renderStatistics);
+            startDateInput.addEventListener('change', renderStatistics);
+            endDateInput.addEventListener('change', renderStatistics);
+        }
+
+        function checkAuthentication() {
+            const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+            if (isAuthenticated) {
+                showMainApp();
+            } else {
+                loginFormContainer.style.display = 'flex';
+                appContainer.style.display = 'none';
+                document.body.addEventListener('contextmenu', disableRightClick);
+            }
+        }
+        
+        function disableRightClick(event) {
+            event.preventDefault();
+        }
+
+        // --- Event Listeners ---
+        
+        document.querySelectorAll('.menu-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                const sectionId = button.getAttribute('href').substring(1);
+                showSection(sectionId);
+            });
+        });
+
+        backupFileInput.addEventListener('change', importBackupFile);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuthentication();
+        });
+
         window.alert = function(message) {
             const modal = document.createElement('div');
             modal.style.position = 'fixed';
@@ -1201,4 +1623,3 @@
     </script>
 </body>
 </html>
-
